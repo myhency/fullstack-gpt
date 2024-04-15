@@ -1,12 +1,12 @@
 import streamlit as st
 from langchain.document_loaders import UnstructuredFileLoader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.embeddings import OllamaEmbeddings, CacheBackedEmbeddings
+from langchain.embeddings import OllamaEmbeddings, CacheBackedEmbeddings, OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.storage import LocalFileStore
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
-from langchain.chat_models import ChatOllama
+from langchain.chat_models import ChatOllama, ChatOpenAI
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.memory import ConversationSummaryBufferMemory
 
@@ -37,13 +37,19 @@ def init_llm(chat_callback: bool):
     else:
         callbacks = []
 
-    return ChatOllama(
+    # return ChatOllama(
+    #     temperature=0.1,
+    #     streaming=True,
+    #     callbacks=callbacks,
+    # )
+    
+    return ChatOpenAI(
         temperature=0.1,
+        model="gpt-3.5-turbo-0125",
         streaming=True,
         callbacks=callbacks,
     )
-
-
+    
 llm_for_chat = init_llm(chat_callback=True)
 llm_for_memory = init_llm(chat_callback=False)
 
@@ -82,7 +88,8 @@ def handle_file(file):
         separator="\n", chunk_size=600, chunk_overlap=100
     )
     embedder = CacheBackedEmbeddings.from_bytes_store(
-        underlying_embeddings=OllamaEmbeddings(),
+        # underlying_embeddings=OllamaEmbeddings(),
+        underlying_embeddings=OpenAIEmbeddings(),
         document_embedding_cache=LocalFileStore("./.cache/embeddings/"),
     )
 

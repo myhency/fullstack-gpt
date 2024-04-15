@@ -38,11 +38,13 @@ def init_llm(chat_callback: bool):
         callbacks = []
 
     return ChatOllama(
-        model="gemma:latest",
+        model="llama2:latest",
         temperature=0.1,
         streaming=True,
         callbacks=callbacks,
     )
+    
+    
 
 
 llm_for_chat = init_llm(chat_callback=True)
