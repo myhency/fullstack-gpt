@@ -37,18 +37,18 @@ def init_llm(chat_callback: bool):
     else:
         callbacks = []
 
-    # return ChatOllama(
-    #     temperature=0.1,
-    #     streaming=True,
-    #     callbacks=callbacks,
-    # )
-    
-    return ChatOpenAI(
+    return ChatOllama(
         temperature=0.1,
-        model="gpt-3.5-turbo-0125",
         streaming=True,
         callbacks=callbacks,
     )
+    
+    # return ChatOpenAI(
+    #     temperature=0.1,
+    #     model="gpt-3.5-turbo-0125",
+    #     streaming=True,
+    #     callbacks=callbacks,
+    # )
     
 llm_for_chat = init_llm(chat_callback=True)
 llm_for_memory = init_llm(chat_callback=False)
@@ -88,8 +88,8 @@ def handle_file(file):
         separator="\n", chunk_size=600, chunk_overlap=100
     )
     embedder = CacheBackedEmbeddings.from_bytes_store(
-        # underlying_embeddings=OllamaEmbeddings(),
-        underlying_embeddings=OpenAIEmbeddings(),
+        underlying_embeddings=OllamaEmbeddings(),
+        # underlying_embeddings=OpenAIEmbeddings(),
         document_embedding_cache=LocalFileStore("./.cache/embeddings/"),
     )
 

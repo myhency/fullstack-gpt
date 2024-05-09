@@ -38,7 +38,7 @@ def init_llm(chat_callback: bool):
         callbacks = []
 
     return ChatOllama(
-        model="llama2:latest",
+        model="llama3:latest",
         temperature=0.1,
         streaming=True,
         callbacks=callbacks,
