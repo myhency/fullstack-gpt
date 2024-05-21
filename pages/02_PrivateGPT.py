@@ -1,14 +1,16 @@
 import streamlit as st
 from langchain.document_loaders import UnstructuredFileLoader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.embeddings import OllamaEmbeddings, CacheBackedEmbeddings
+from langchain_experimental.text_splitter import SemanticChunker
+from langchain.embeddings import OllamaEmbeddings, OpenAIEmbeddings, CacheBackedEmbeddings, HuggingFaceEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.storage import LocalFileStore
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema.runnable import RunnableLambda, RunnablePassthrough
-from langchain.chat_models import ChatOllama
+from langchain.chat_models import ChatOllama, ChatOpenAI
 from langchain.callbacks.base import BaseCallbackHandler
 from langchain.memory import ConversationSummaryBufferMemory
+from transformers import AutoTokenizer, AutoModel
 
 st.set_page_config(page_title="PrivateGPT", page_icon="📜")
 
@@ -36,10 +38,17 @@ def init_llm(chat_callback: bool):
         callbacks = [ChatCallbackHandler()]
     else:
         callbacks = []
+        
+    # return ChatOpenAI(
+    #     temperature=0.1,
+    #     model="gpt-4-turbo",
+    #     streaming=True,
+    #     callbacks=callbacks,
+    # )
 
     return ChatOllama(
-        model="llama3:latest",
-        temperature=0.1,
+        model="llama3",
+        temperature=0,
         streaming=True,
         callbacks=callbacks,
     )
@@ -82,10 +91,17 @@ def handle_file(file):
     # file load, split, embed하기
     loader = UnstructuredFileLoader(file_path)
     splitter = CharacterTextSplitter.from_tiktoken_encoder(
-        separator="\n", chunk_size=600, chunk_overlap=100
+        separator="\n", chunk_size=300, chunk_overlap=50
     )
+    # splitter = SemanticChunker(OpenAIEmbeddings(model="text-embedding-ada-002"))
+    # embedder = CacheBackedEmbeddings.from_bytes_store(
+    #     underlying_embeddings=OpenAIEmbeddings(model="text-embedding-ada-002"),
+    #     document_embedding_cache=LocalFileStore("./.cache/private_embeddings/"),
+    # )
+    
+    # Update to use HuggingFaceEmbeddings
     embedder = CacheBackedEmbeddings.from_bytes_store(
-        underlying_embeddings=OllamaEmbeddings(),
+        underlying_embeddings=HuggingFaceEmbeddings(model_name="BAAI/bge-m3"),
         document_embedding_cache=LocalFileStore("./.cache/private_embeddings/"),
     )
 
@@ -110,7 +126,17 @@ prompt = ChatPromptTemplate.from_messages(
         (
             "system",
             """
-            Answer the question using ONLY the following context and the conversation history. If you don't know the answer just say you don't know. DON'T make anything up.
+            You are a helpful assistant.
+            Answer the question using ONLY the following context and the conversation history. 
+            Even when asking questions unrelated to the document, you must answer in Korean. For example, I don't know much about that question.
+            If there is an order to the document, be sure to structure it using the markdown method before answering.
+            When using Markdown, the levels range from ###.
+            If a word is in English in a document, do not translate it but use the word as is.
+            If you don't know the answer just say you don't know. DON'T make anything up.
+            And must be sure that your answer will be only KOREAN. 
+            Never use English and this is very important.
+
+            
             
             Context: {context}
             """,
@@ -144,7 +170,7 @@ Upload your file on the sidebar!
 
 with st.sidebar:
     file = st.file_uploader(
-        "Upload a .txt, .pdf or .docx files!", ["txt", "pdf", "docx", "html"]
+        "Upload a .txt, .pdf or .docx files!", ["txt", "pdf", "docx", "html", "md"]
     )
 
 if file:
